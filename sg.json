@@ -1,0 +1,44 @@
+{
+    "AWSTemplateFormatVersion": "2010-09-09",
+    "Description": "",
+  "Parameters": {
+    "vpcid" : {
+      "Description" : "vpc id for the sg",
+      "Type" : "String",
+      "Default" : "vpc-071e27f62dabcbffe",
+      "MinLength" : "1",
+      "MaxLength" : "12"
+    }
+    },    
+    "Resources": {
+        "SecurityGroup": {
+            "Type": "AWS::EC2::SecurityGroup",
+            "Properties": {
+                "GroupDescription": "A security group that allows inbound access to a PostgreSQL DB instance.",
+                "VpcId": { "Ref" : "Enginetype" },
+                "SecurityGroupEgress": [
+                    {
+                        "FromPort": -1,
+                        "ToPort": -1,
+                        "IpProtocol": "-1",
+                        "Description": "",
+                        "CidrIp": "0.0.0.0/0"
+                    }
+                ],
+                "SecurityGroupIngress": [
+                    {
+                        "FromPort": 5432,
+                        "ToPort": 5432,
+                        "IpProtocol": "tcp",
+                        "Description": "Allow connections to a PostgreSQL DB instance",
+                        "CidrIp": "0.0.0.0/0"
+                    }
+                ],
+                "GroupName": "allow-postgresql-traffic"
+            }
+        }
+    },
+
+    "Metadata": {},
+    "Conditions": {}
+}
