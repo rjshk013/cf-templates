@@ -1,0 +1,196 @@
+{
+    "AWSTemplateFormatVersion": "2010-09-09",
+    "Description": "Tgix RDS Template: 071119",
+    "Parameters": {
+      "DBName" : {
+        "Description" : "DB name (Max 12 alpha-numeric characters).",
+        "Type" : "String",
+        "Default" : "sva_edu_seta",
+        "MinLength" : "1",
+        "MaxLength" : "12"
+      },
+      "DBInstanceId" : {
+        "Description" : "DB Instance Identifier.",
+        "Type" : "String",
+        "Default" : "svalpsql2",
+        "MinLength" : "1",
+        "MaxLength" : "20"
+      },
+      "DBType" : {
+        "Description" : "Instance type: db.t3.medium, db.m5.large, db.m5.xlarge",
+        "Type" : "String",
+        "Default" : "db.t3.medium"
+      },
+      "ConfigureMultiAZ" : {
+        "Description" : "Set up MultiAZ? Answer true or false",
+        "Type" : "String",
+        "Default" : "true",
+        "AllowedValues" : ["true", "false"],
+        "ConstraintDescription" : "Must answer true or false"
+      },
+      "UseAZ" : {
+        "Description" : "Name of AZ to use, or leave blank if Multi-AZ is true.",
+        "Type" : "String",
+        "MinLength" : "0",
+        "MaxLength" : "20"
+      },
+      "MinorVersionUpgrade" : {
+        "Description" : "Allow automatic Minor Version upgrades? Answer true or false",
+        "Type" : "String",
+        "Default" : "true",
+        "AllowedValues" : ["true", "false"],
+        "ConstraintDescription" : "Must answer true or false"
+      },
+      "SecGroup" : {
+        "Description" : "Security Group to apply",
+        "Type" : "String",
+        "MinLength" : "11",
+        "MaxLength" : "20"
+      },
+      "Subnet1" : {
+        "Description" : "First subnet",
+        "Type" : "String",
+        "MinLength" : "15",
+        "MaxLength" : "24"
+      },
+      "Subnet2" : {
+        "Description" : "Second subnet",
+        "Type" : "String",
+        "MinLength" : "15",
+        "MaxLength" : "24"
+      },      
+      "AllocatedStorage" : {
+        "Description" : "Total number of gigs to be allocated",
+        "Type" : "Number",
+        "Default" : "120",
+        "MinValue" : "5",
+        "MaxValue" : "1000"
+      },
+      "Username" : {
+        "Description" : "The master user name for the DB instance.",
+        "Type" : "String",
+        "Default" : "svam_beta",
+        "MinLength" : "1",
+        "MaxLength" : "20"
+      },
+      "Password" : {
+        "Description" : "The master password for the DB instance.",
+        "Type" : "String",
+        "NoEcho" : "true",
+        "MinLength" : "1",
+        "MaxLength" : "20"
+      },
+      "SnapshotYesOrNo" : {
+        "Description" : "Create DB from an existing snapshot? Answer yes or no",
+        "Type" : "String",
+        "Default" : "no",
+        "AllowedValues" : ["yes", "no"],
+        "ConstraintDescription" : "Must answer yes or no"
+      },
+      "SnapshotName" : {
+        "Description" : "Name of existing snapshot, or leave blank for new DB.",
+        "Type" : "String",
+        "MinLength" : "0",
+        "MaxLength" : "60"
+      },
+      "CloudwatchLogsExports" : {
+        "Description" : " Select the log types to publish to Amazon CloudWatch Logs",
+        "Type" : "CommaDelimitedList",
+        "Default" : "error, slowquery"        
+      },
+      "Enginetype" : {
+        "Description" : "The Engine tye of  the DB instance.",
+        "Type" : "String",
+        "Default" : "postgres"   
+      },
+      "Familytype" : {
+        "Description" : "The DB parameter family  of  the DB instance.",
+        "Type" : "String",
+        "Default" : "postgres13"   
+      },
+      "DBversion" : {
+        "Description" : "The version of   the DB instance.",
+        "Type" : "String",
+        "Default" : "13.4"   
+      },
+      "Portno" : {
+        "Description" : "The port no of  the DB instance.",
+        "Type" : "String",
+        "Default" : "5432"   
+      }                                                                           
+    },
+    "Conditions" : {
+       "isMultiAZ" : { "Fn::Equals" : [ { "Ref" : "ConfigureMultiAZ" }, "true" ] },
+       "useSnapshot" : { "Fn::Equals" : [ { "Ref" : "SnapshotYesOrNo" }, "yes" ] }
+    },
+    "Resources": {
+      "DB": {
+        "Type": "AWS::RDS::DBInstance",
+        "Properties": {
+          "DBName": { "Fn::If" : [ "useSnapshot", { "Ref" : "AWS::NoValue" }, { "Ref" : "DBName"} ] },
+          "DBInstanceIdentifier": { "Ref" : "DBInstanceId" },
+          "DBInstanceClass": { "Ref" : "DBType" },
+          "Engine": { "Ref" : "Enginetype" },
+          "EngineVersion": { "Ref" : "DBversion" },
+          "Port": { "Ref" : "Portno" },
+          "DBSnapshotIdentifier": { "Ref" : "SnapshotName" },
+          "MasterUsername": { "Ref" : "Username" },
+          "MasterUserPassword": { "Ref" : "Password" },
+          "MultiAZ": { "Ref" : "ConfigureMultiAZ" },
+          "AvailabilityZone": { "Fn::If" : [ "isMultiAZ", { "Ref" : "AWS::NoValue" }, { "Ref" : "UseAZ"} ] },
+          "AllocatedStorage": { "Fn::If" : [ "useSnapshot", { "Ref" : "AWS::NoValue" }, { "Ref" : "AllocatedStorage"} ] },
+          "StorageType" : "gp2",
+          "StorageEncrypted" : "true",
+          "VPCSecurityGroups": [
+            { "Ref" : "SecGroup" }
+          ],
+          "PubliclyAccessible" : "false",
+          "DeletionProtection" : "true",
+          "AutoMinorVersionUpgrade": { "Ref" : "MinorVersionUpgrade" },
+          "EnableCloudwatchLogsExports": { "Ref" : "CloudwatchLogsExports" },          
+          "EnablePerformanceInsights" : "true",
+          "PerformanceInsightsRetentionPeriod" : "7",
+          "BackupRetentionPeriod": "35",
+          "PreferredBackupWindow": "07:00-08:00",
+          "DBParameterGroupName": { "Ref": "DBparams" },
+          "DBSubnetGroupName": { "Ref": "DBsubnets" },        
+          "Tags" : [{
+            "Key" : "Name",
+            "Value" : {"Ref" : "DBName"}
+          }, {
+            "Key" : "tao:BACKUP",
+            "Value" : "MONTHLY"
+          }]
+        }
+      },
+      "DBsubnets": {
+        "Type": "AWS::RDS::DBSubnetGroup",
+        "Properties": {
+          "DBSubnetGroupDescription": { "Fn::Join" : [ " ", [ "RDS Subnet Group:", "Main", { "Ref" : "DBName" } ] ] },
+          "SubnetIds": [
+              { "Ref" : "Subnet1" },
+              { "Ref" : "Subnet2" }
+          ]
+        }
+      },
+      "DBparams": {
+        "Type": "AWS::RDS::DBParameterGroup",
+        "Properties": {
+          "Description": { "Fn::Join" : [ " ", [ "RDS Params Group:", "Main", { "Ref" : "DBName" } ] ] },
+          "Family": { "Ref" : "Familytype" },
+          "Parameters": {
+          }
+        }
+      }
+    },
+    "Outputs": {
+      "DBEndpoint": {
+        "Value": {
+          "Fn::GetAtt": [
+            "DB",
+            "Endpoint.Address"
+          ]
+        }
+      }
+    }
+  }
